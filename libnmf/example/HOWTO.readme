@@ -1,0 +1,55 @@
+Building example executables for libNMF
+#######################################
+
+
+1. REQUIREMENTS
+---------------------------------------
+
+a) Build the libNMF library using the included Makefile
+
+static library:
+>> make lib
+
+shared library:
+>> make shared
+
+
+b) Install ARPACK, LAPACK and BLAS libraries
+
+
+2. BUILDING EXECUTABLES
+---------------------------------------
+
+Building the executables depends on your specific version of ARPACK, LAPACK and BLAS libraries and might require additional linking
+of -lgfortran
+
+The following example calls assume
+
+*) that the include directory is ../include
+*) that the libNMF library lies in ../lib
+
+a) Generic Arpack, Lapack, Blas
+
+>> gcc -Wall -Wextra example.c -I../include -L../lib -lnnmf -larpack -llapack -lblas -o main
+
+b) Arpack, Lapack and GOTO Blas
+
+>> gcc -Wall -Wextra example.c -I../include -L../lib -lnnmf -larpack -llapack -lgoto -lpthread -lgfortran -o main
+
+c) Arpack, Lapack and ATLAS Blas
+
+>> gcc -Wall -Wextra example.c -I../include -L../lib -lnnmf -larpack -llapack -lf77blas -latlas -lpthread -lgfortran -o main
+
+
+3. PITFALLS
+----------------------------------------
+
+When building the shared library:
+Shared libraries are preferred in linking if static and shared versions are available.
+
+To run a dynamically linked executable, one needs to add the path of every used shared library to the load path
+For example by adding the path to the LD_LIBRARY_PATH environment variable
+>> LD_LIBRARY_PATH=/path/to/new/shared/library:$LD_LIBRARY_PATH
+>> export LD_LIBRARY_PATH
+
+To force linking of the static library one can use the flag -static

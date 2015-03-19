@@ -1,0 +1,113 @@
+// example.c
+// version 1.02
+//#################################
+//#				  #
+//# Calling the driver routine	  #
+//#				  #
+//#################################
+
+
+// Building executable
+//------------------------------------------------
+//
+// Use the included makefile to build the example programs
+// Alternatively use one of the following calls (requires generic Arpack / Lapack / BLAS libraries or GOTO BLAS respectively)
+//
+// 1. Call  -- assumes include files in ../include and the libNMF library in ../lib
+//
+// gcc -Wall -Wextra example.c -I../include -L../lib -lnnmf -larpack -llapack -lblas -o example
+//
+// 2. Call -- assumes include files in ../include and the libNMF library in ../libNMF
+//
+// gcc -Wall -Wextra example.c -I../include -L../lib -lnnmf -larpack -llapack -lgoto -lpthread -lgfortran -o example
+//
+// Pitfall: When building the shared library
+// To run a dynamically linked executable, one needs to add the path of every used shared library to the load path
+// For example by adding the path to the LD_LIBRARY_PATH environment variable
+// > LD_LIBRARY_PATH=/path/to/new/shared/library:$LD_LIBRARY_PATH
+// > export LD_LIBRARY_PATH
+
+
+// Compiling
+//----------------------------------------------
+//
+// gcc -Wall -Wextra example.c -c -I../include/
+//
+// Linking
+//------------------------------------------------
+//
+// Linking requires the library libnnmf.a (or libnnmf.so)
+// This library can be created using the provided Makefile and target 'lib' (or target 'shared' for libnnmf.so)
+//
+// Using generic blas/lapack routines:		-lnnmf -larpack -llapack -lblas(depending on system maybe -lgfortran)
+// Using atlas blas/lapack routines:		-lnnmf -larpack -llapack -lf77blas -lcblas -latlas -lpthread(depending on system maybe -lgfortran)
+// Using goto blas and generic lapack		-lnnmf -larpack -llapack -lgoto -lpthread(depending on system maybe -lgfortran)
+
+#include <stdio.h>
+#include "nmfdriver.h"
+
+
+/** main function
+ *
+ */
+int main(int argc, char** argv) {
+  
+// @ 1. call - default options
+//############################
+  
+  // calling parameters:		exemplary values		comment
+  //##########################################################################################################################################
+  
+  // filename matrix a			"a.matrix"			Matrix to be factorized			
+  // factor k				25				approximation rank, has to be smaller than original matrix dimensions
+  // max. iterations			100				
+  // filename initial matrix w0		NULL				set to NULL to generate a matrix in the first repetition as well
+  // filename initial matrix h0		NULL				set to NULL to generate a matrix in the first repetition as well
+  // algorithm				"als" 	 			set to one of the implemented algorithms
+  // options to be used			NULL				set to NULL to use default options
+  
+  // load and factorize matrix "a.dat" using random initialization and store resulting factor matrices
+  nmfDriver("wasabi.dat", 3, 100, NULL, NULL, als, NULL);
+  
+// @ 2. call - explicitly set options
+//####################################
+  
+  
+  // options is of type options_t* with following elements
+  //######################################################
+  
+  // int rep;				1				Number of repetitions with new starting matrices
+  // init_t init;			nndsvd				Method to use for initialising the starting matrices
+  // int min_init;			0				minimal value for random initialisation
+  // int max_init;			1				maximal value for random initialisaton
+  // char* w_out;			"final_w.matrix"		Filename to write final matrix w to
+  // char* h_out;			"final_h.matrix"		Filename to write final matrix h to
+  // double TolX;			2.0E-02				tolerance value for convergence check of maxChange
+  // double TolFun;			2.0E-02				tolerance value for convergence check of dnorm
+  // int nndsvd_maxiter			-1				maxiter in nndsvd initialization (-1 requests setting of default value)
+  // int nndsvd_blocksize		1				blocksize in nndsvd initialization; !! only works for 1 so far
+  // double nndsvd_tol			2E-08				tolerance value for nndsvd initialization
+  // int nndsvd_ncv			-1				length of arnoldi iteration (-1 requests setting of default value)
+  
+  // Creating option structure
+  options_t opts;
+  opts.rep = 1;
+  opts.init = nndsvd;
+  opts.min_init = 0;
+  opts.max_init = 1;
+  opts.w_out = "final_w2.matrix";
+  opts.h_out = "final_h2.matrix";
+  opts.TolX = 2.0E-02;
+  opts.TolFun = 2.0E-02;
+  opts.nndsvd_maxiter = -1;			//if set to -1 - default value will be set in generateMatrix
+  opts.nndsvd_blocksize = 1;
+  opts.nndsvd_tol = 2E-08;
+  opts.nndsvd_ncv = -1;		
+
+  // load and factorize matrix "a.dat" using nndsvd initialization and store resulting factor matrices
+  nmfDriver("wasabi.dat", 3, 100, NULL, NULL, als, &opts);
+
+
+
+  return 0;
+}
