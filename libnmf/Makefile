@@ -23,6 +23,8 @@ COMPILER='gcc'
 COMPILER2='g++'
 LIBFOLDER='lib'
 GCCFLAGS=-Wall -Wextra -Iinclude/ -g
+WASABIFLAGS = -L ./lib -lnnmf 
+#-larpack -llapack -lblas -o main
 
 # for creating the shared library use:
 #GCCFLAGS=-fPIC -Wall -Wextra -Iinclude/
@@ -46,8 +48,8 @@ shared: lib
 		setdefaultopts.o calculatenorm.o  calculatenorm_singleprec.o  generatematrix.o  nmf_alspg.o   nmf_neals.o  pg_subprob_h.o pg_subprob_w.o\
 		storematrix.o calculatesvd.o 
 
-wasabi: toprocessable.o nonnegativize.o wasabi.o
-		g++ toprocessable.o nonnegativize.o wasabi.o -o wasabi
+wasabi: toProcessable.cpp nonnegativize.cpp wasabi.cpp
+		g++ $(GCCFLAGS) $(WASABIFLAGS)  toProcessable.cpp nonnegativize.cpp wasabi.cpp -std=c++11 -o wasab
 
 
 calculatesvd.o: calculatesvd.c include/calculatesvd.h
@@ -120,14 +122,14 @@ pg_subprob_w.o: pg_subprob_w.c include/pg_subprob_w.h
 storematrix.o: storematrix.c include/storematrix.h
 	      $(COMPILER) $(GCCFLAGS) -c storematrix.c -c
 	      
-toprocessable.o: toProcessable.cpp include/toProcessable.h
-			$(COMPILER2) $(GCCFLAGS) -c toProcessable.cpp -c
+toProcessable.o: toProcessable.cpp include/toProcessable.h
+			$(COMPILER2) $(GCCFLAGS) -c -std=c++11 toProcessable.cpp -c
 			
 nonnegativize.o: nonnegativize.cpp include/nonnegativize.h
-			$(COMPILER2) $(GCCFLAGS) -c nonnegativize.cpp -c
+			$(COMPILER2) $(GCCFLAGS) -c -std=c++11 nonnegativize.cpp -c
 			
 wasabi.o: wasabi.cpp
-			$(COMPILER2) $(GCCFLAGS) -c wasabi.cpp -c
+			$(COMPILER2) $(GCCFLAGS) -c -std=c++11 wasabi.cpp -c
 
 
 
@@ -135,4 +137,4 @@ clean:
 	rm -f $(LIBFOLDER)/libnnmf.so $(LIBFOLDER)/libnnmf.a   cpmidx_double.o       checkarguments.o    loadmatrix.o  nmfdriver.o  nmf_pg.o        randnumber.o \
 	calculatemaxchange.o calculatemaxchange_singleprec.o checkmatrices.o   nmf_als.o     nmf_mu.o  nmf_mu_singleprec.o   outputtiming.o  setdefaultopts.o \
 	calculatenorm.o   calculatenorm_singleprec.o         generatematrix.o  nmf_alspg.o   nmf_neals.o  pg_subprob_h.o pg_subprob_w.o   storematrix.o \
-	calculatesvd.o
+	calculatesvd.o toProcessable.o nonnegativize.o wasabi.o

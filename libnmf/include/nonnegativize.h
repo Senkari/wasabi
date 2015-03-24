@@ -7,7 +7,7 @@
  * 
  **/
 
-#include "loadmatrix.h"
+#include <string>
 
-void nonnegativize(const char *fileName);
+void nonnegativize(int m, int n, double **matrix);
 

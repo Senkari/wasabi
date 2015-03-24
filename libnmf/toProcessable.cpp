@@ -7,68 +7,82 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include <string.h>
+#include <string>
 #include <errno.h>
 #include <sys/time.h>
 #include <time.h>
+#include <fstream>
+#include <vector>
+#include <sstream>
+#include <iostream>
 
-#include "common.h"
-#include "outputtiming.h"
+std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems);
+std::vector<std::string> split(const std::string &s, char delim);
 
-
-void toProcessable(const char* fileName)
+void toProcessable(std::string fileName)
 {
 	
-	int i, j, matches, beginning, rowAmnt;
+	//char* tmpName = new char[strlen(fileName) + 7 + 1];
+	//char* oldName = new char[strlen(fileName) + 1];
+	//strcpy(tmpName, fileName);
+	//strcat(tmpName, ".wasabi");
+	//strcpy(oldName, fileName);
 	
-	char* tmpName = new char[strlen(fileName) + 7 + 1];
-	char* oldName = new char[strlen(fileName) + 1];
-	strcpy(tmpName, fileName);
-	strcat(tmpName, ".wasabi");
-	strcpy(oldName, fileName);
-	//
-	//const char[] oldName = *fileName;
-	//const char tmpName = oldName + ".wasabi"
-	//const char tmpName = oldName + ".wasabi"
-	rename(oldName, tmpName);
+	std::string oldName = fileName;
+	std::string tmpName = oldName + ".wasabi";
+	rename(oldName.c_str(), tmpName.c_str());
 
 	//FILE *file = fopen(fileName, "r");
 	
 	std::ifstream fileIn(tmpName);
-	
-#ifdef ERROR_CHECKING
-	if (errno) {
-	  perror(tmpName);
-	  return;
+	if(!fileIn.is_open()){
+		std::cout << "Error: Opening " << tmpName << "failed!\n";
+		return;
 	}
-#endif
 
 	std::ofstream fileOut(oldName);
-		
-#ifdef ERROR_CHECKING
-	if (errno) {
-	  perror(oldName);
-	  return;
+	if(!fileOut.is_open()){
+		std::cout << "Error: Opening " << oldName << "failed!\n";
+		return;
 	}
-#endif
+
+	int i, j, matches, beginning, rowAmnt;	
+	std::string line, firstline, secondline;
 	
-	string line;
-	string firstline, secondline
 	getline(fileIn, firstline); //sample rate line
 	getline(fileIn, secondline); //channel amount line
-	beginning = 2;
+	beginning = fileIn.tellg();
 	rowAmnt = 0;
 	while (getline(fileIn, line)){
 		rowAmnt++;
 	}
-	beginning = fileIn.tellg();
+	fileIn.clear();
+	fileIn.seekg(beginning, fileIn.beg);
 	
-	fileOut << std::to_String(rowAmnt)+"\n"; 
-	fileOut << split(secondline, ' ')[1]+"\n";
+	fileOut << std::to_string(rowAmnt)+"\n"; 
+	fileOut << split(secondline, ' ')[2]+"\n";
 	for(i=0; i<rowAmnt; i++){
-		fileOut << getline(fileIn, line);
+		getline(fileIn, line);
+		fileOut << line << "\n";
 	}
 	
 	//remove(tmpName);
 	
+}
+
+
+//http://stackoverflow.com/questions/236129/split-a-string-in-c
+std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems) {
+    std::stringstream ss(s);
+    std::string item;
+    while (std::getline(ss, item, delim)) {
+        elems.push_back(item);
+    }
+    return elems;
+}
+
+std::vector<std::string> split(const std::string &s, char delim) {
+    std::vector<std::string> elems;
+    split(s, delim, elems);
+    return elems;
 }

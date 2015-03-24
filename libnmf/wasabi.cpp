@@ -1,19 +1,11 @@
-/**
- * 
-    Create one dataset with all negative numbers zeroed.
-    Create another dataset with all positive numbers zeroed and the signs of all negative numbers removed.
-    Merge the two (eg. by concatenation), resulting in a dataset twice as large as the original, but with positive values only and zeros, hence appropriate for NMF.
-
- * 
- **/
-
-
-#include <string>
 #include <cstdlib>
+#include <stdio.h>
+#include <string>
+#include <fstream>
+#include "toProcessable.h"
 #include "nonnegativize.h"
-//#include "loadMatrix.h"
 
-/**loaMatrix includes here
+//loaMatrix includes here
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,46 +17,54 @@
 
 #include "common.h"
 #include "outputtiming.h"
-**/
+#include "nmfdriver.h"
 
-//void loadMatrix(const char *fileName, int *m, int *n, double **matrix);
+//
 
-void nonnegativize(int m, int n, double **matrix){
-/**	
+void loadMatrix(const char *fileName, int *m, int *n, double **matrix);
+
+int main(){
+	//system("./script-to-convert-soundfile");
+	toProcessable("file.dat");
+	
 	int m, n;
 	double* mtrx;
-	loadMatrix(fileName.c_str(), &m, &n, &mtrx);
-**/	
-	//double* copy = (double*) malloc(sizeof(double) * m * n);
+	loadMatrix("file.dat", &m, &n, &mtrx);
 	
-	double* min=matrix[0];
+	nonnegativize(m, n, &mtrx);
+	
+	//for testing
+	
+	std::ofstream fileOut("negative.dat");
+	fileOut << m << "\n" << n << "\n\n";
 	for(int i=0; i<m; i++){
 		for (int j=0; j<n; j++){
-			if ((*matrix)[i + j*m] < *min) *min = (*matrix)[i + j*m];
+			fileOut << mtrx[i + j * m] << "\t";
 		}
-	}
-	if (*min >=0) *min = 0;
-	else *min = -1* *min;	
-	for(int i=0; i<m; i++){
-		for (int j=0; j<n; j++){
-			(*matrix)[i + j*m] = (*matrix)[i + j*m] + *min;
-		}
+		fileOut << "\n";
 	}
 	
+	// Creating option structure
+	options_t opts;
+	opts.rep = 1;
+	opts.init = nndsvd;
+	opts.min_init = 0;
+	opts.max_init = 1;
+	opts.w_out = "final_w2.matrix";
+	opts.h_out = "final_h2.matrix";
+	opts.TolX = 2.0E-02;
+	opts.TolFun = 2.0E-02;
+	opts.nndsvd_maxiter = -1;			//if set to -1 - default value will be set in generateMatrix
+	opts.nndsvd_blocksize = 1;
+	opts.nndsvd_tol = 2E-08;
+	opts.nndsvd_ncv = -1;	
 	
-/**	for(int i=0; i<m; i++){
-		for (int j=0; j<n; j++){
-			if (mtrx[i + j*m] < 0) copy[i + j*m] = 0;
-			else copy[i + j*m] = mtrx[i + j*m];
-			if (mtrx[i + j*m] > 0) mtrx[i + j*m] = 0;
-		}
-	}
-**/	
-	
-	
+	nmfDriver("negative.dat", 3, 100, NULL, NULL, als, &opts);
+
+	return 0;
 }
 
-/**void loadMatrix(const char *fileName, int *m, int *n, double **matrix)
+void loadMatrix(const char *fileName, int *m, int *n, double **matrix)
 {
 #ifdef PROFILE_LOAD_MATRIX
 	struct timeval start, end;
@@ -118,4 +118,3 @@ void nonnegativize(int m, int n, double **matrix){
 	outputTiming("Timing:", start, end);
 #endif
 }
-**/

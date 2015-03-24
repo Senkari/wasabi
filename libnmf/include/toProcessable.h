@@ -4,16 +4,7 @@
  */
 
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <string.h>
-#include <errno.h>
-#include <sys/time.h>
-#include <time.h>
-
-#include "common.h"
-#include "outputtiming.h"
+#include <string>
 
 
-void toProcessable(const char *fileName);
+void toProcessable(std::string fileName);
