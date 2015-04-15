@@ -1,31 +1,118 @@
 import scipy.io.wavfile as wavi
+from scipy.fftpack import *
+from scipy.signal import *
+from pylab import *
 import numpy
 import nimfa
 
-fileIn = "wasabidemo.wav"				#"classical_5db_1.wav"
+fileIn = "classical_5db_1.wav"
 rate, data = wavi.read(fileIn)
-minNum = data.min()
-if(minNum < 0):
-    minNum *= -2
-else:
-    minNum = 0
 
-sumData = numpy.sum([data, minNum])
-numpy.savetxt("sumData", sumData)
-nmf = nimfa.Nmf(sumData, max_iter=10, rank=2, update='euclidean', objective='fro')
+##http://dsp.stackexchange.com/questions/4697/time-frequency-analysis-of-non-sinusoidal-periodic-signals/4700#4700
+##http://www.cs.tut.fi/sgn/arg/music/tuomasv/virtanen_taslp2007.pdf
+
+
+##Default window function for specgram is Hanning;
+##w(n) = 0.5*(1-cos(2*pi*n/(N-1)))
+
+##Window size and type for chopping the signal
+winsize = 256
+win = numpy.hanning(winsize)
+
+periodograms = []
+
+##Loop parameters, no need to adjust
+loop = 1
+l = 0
+
+##Construct spectrogram data
+while(loop==1):
+	chunk = []
+	for i in range(winsize):
+		chunk.append(data[l])
+		l+=1
+		if l == len(data)-1:
+			loop = 0
+			if i != winsize-1:
+				padding = numpy.zeros(winsize-i-1)
+				chunk += list(padding)
+				break
+	##Overlap index back for a half-window
+	l -= int(round(winsize/2.0)) + 1
+	
+	periodograms.append(fft(chunk*win))
+	
+##Store original phase data
+angles = angle(periodograms)
+
+spectros = abs(numpy.asarray(periodograms))
+
+##TODO: normalization
+#f, Pxx = welch(data, noverlap=128)
+#spectros = spectros / Pxx
+
+##Reconstruction:
+##http://dsp.stackexchange.com/questions/9877/reconstruction-of-audio-signal-from-spectrogram
+##http://dsp.stackexchange.com/questions/3406/reconstruction-of-audio-signal-from-its-absolute-spectrogram/3410#3410
+##http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.306.7858&rep=rep1&type=pdf
+##http://eeweb.poly.edu/iselesni/EL713/STFT/stft_inverse.pdf
+##http://isdl.ee.washington.edu/people/stevenschimmel/sphsc503/files/handout5.pdf
+##http://dsp.stackexchange.com/questions/10743/generating-spectrograms-in-python-with-less-noise
+
+### Different nmf-approaches (http://nimfa.biolab.si)
+##Adjust rank according to number of components to be extracted, try different algs and parameters
+
+nmf = nimfa.Nmf(spectros, max_iter=50, rank=4, update='divergence', objective='div')
+
+#nmf = nimfa.Snmf(spectros, seed="random_vcol", rank=1*winsize, max_iter=5, version='l', eta=1., beta=1e-4, i_conv=10, w_min_change=0) #ValueError: operands could not be broadcast together with shapes (256,300) (256,301)
+
+#nmf = nimfa.Lfnmf(spectros, seed=None, W=np.random.rand(spectros.shape[0], 1*winsize), H=np.random.rand(1*winsize, spectros.shape[1]), rank=1*winsize, max_iter=20, alpha=0.01)
+
+#nmf = nimfa.Bd(spectros, seed="random_c", rank=1*winsize, max_iter=12, alpha=np.zeros((spectros.shape[0], 10)), beta=np.zeros((10, spectros.shape[1])), theta=.0, k=.0, sigma=1., skip=100, stride=1, n_w=np.zeros((10, 1)), n_h=np.zeros((10, 1)), n_sigma=False)
+
+#nmf = nimfa.Lsnmf(spectros, seed="random_vcol", rank=1*winsize, max_iter=12, sub_iter=10, inner_sub_iter=10, beta=0.1)
+
+###
+
 nmf_fit = nmf()
-
 W = nmf_fit.basis()
-#print W[:,0]
-trueW = numpy.sum([W, -minNum])
-
-#Record columns according to rank (for loop would be nicer)
-wavi.write("wasaW1.wav", rate, trueW[:,0])
-wavi.write("wasaW2.wav", rate, trueW[:,1])
-#wavi.write("wasaW3.wav", rate, trueW[:,2])
-#wavi.write("wasaW4.wav", rate, trueW[:,3])
-
 H = nmf_fit.coef()
-#print H
-trueH = numpy.sum([H, -minNum])
-wavi.write("wasaH.wav", rate, trueH)
+
+l = 0
+sources = []
+recovered = []
+source = numpy.asarray([])
+
+##Extracted components to spectral form
+for i in range(W.shape[1]):
+	sources.append(W[:,i]*H[i])
+
+##Spectrograms back to sound
+for i in range(len(sources)):
+	sources[i] = numpy.asarray(sources[i])
+	
+	##Apply original phase data to the separated amplitudes
+	sources[i] = sources[i]*numpy.e**(1j * angles)
+	
+	##Process each window
+	for j in range(len(sources[i])):
+		##Inverse Fourier
+		chunk = ifft(sources[i][j])
+		
+		##Window back
+		chunk = chunk*win
+		
+		if j==0:
+			source = chunk
+			l = chunk.shape[0] - int(winsize/2)
+		else:
+			##Handle overlapping
+			chunk = numpy.concatenate((numpy.zeros(l), chunk))
+			source = numpy.concatenate((source, zeros(winsize/2)))
+			source += chunk
+			l += int(winsize/2)
+	name = "recovered"+str(i+1)+".wav"
+	wavi.write(name, rate, numpy.asarray(source).real)
+	source = numpy.asarray([])
+	l=0
+##For now, remember to normalize tracks before listening!
