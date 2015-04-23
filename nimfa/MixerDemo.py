@@ -7,9 +7,9 @@ import numpy
 import Mixer
 
 
-rate, dataList = Mixer.readFiles(["hl2_01.wav", "hl2_02.wav"])
+rate, dataList, maxDataLength = Mixer.readFiles(["hl2_01.wav", "hl2_02.wav"])
 
-data = Mixer.mixInputs(dataList);
+data = Mixer.mixInputs(dataList, maxDataLength);
 data = Mixer.addReverb(data, 5000, 0.2, 3)
 data += numpy.random.normal(0, 2000, data.shape[0]) 	#add some noise
 data = Mixer.normalise(data)

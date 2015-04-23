@@ -6,10 +6,11 @@ import sys
 #arguments: 	filenames = a list of filenames
 #returns: 	outputRate = sample rate
 #		outputDataList = a list of numpy arrays
+#		maxDataLength = longest length of numpy arrays in outputDataList
 def readFiles (filenames):
-  
+		
 	outputDataList = []
-	 
+	
 	for i in range(len(filenames)):
 	   
 		fileIn = filenames[i]
@@ -17,28 +18,32 @@ def readFiles (filenames):
 		
 		if i == 0:
 			outputRate = rate
-			outputDataLength = data.shape[0]
+			maxDataLength = data.shape[0]
 		else:
 			if rate != outputRate:
 				print "error: different sample rates"
 				sys.exit
-		
-		#truncate all numpy arrays (sound files) to the length of the shortest of them
-		if outputDataLength > data.shape[0]:
-			for i in range(len(outputDataList)):
-				outputDataList[i] = outputDataList[i][0:data.shape[0]]
-		elif outputDataLength < data.shape[0]:
-			data = data[0:outputDataLength]
-			
+			if data.shape[0] > maxDataLength:
+				maxDataLength = data.shape[0]
+					
 		outputDataList.append(data)
 	
-	return outputRate, outputDataList
+	return outputRate, outputDataList, maxDataLength
 
 
 #arguments: 	inputDataList = a list of numpy arrays
-#returns:	outputData = averaged data from numpy arrays
-def mixInputs (inputDataList):
+#		maxDataLength = longest length of numpy arrays
+#returns:	outputData = averaged data from numpy arrays in inputDataList
+def mixInputs (inputDataList, maxDataLength):
   
+	#randomise signal positions
+  	for i in range(len(inputDataList)):
+	  
+		randPos = numpy.random.randint(0, maxDataLength - inputDataList[i].shape[0] + 1)
+		
+		inputDataList[i] = numpy.lib.pad(inputDataList[i], (randPos, maxDataLength - inputDataList[i].shape[0] - randPos), 'constant', constant_values=(0.0, 0.0))
+		
+	#mix signals
 	averagingCoefficient = 1.0 / len(inputDataList)
 	outputData = numpy.zeros(inputDataList[0].shape[0])
 	
