@@ -9,7 +9,7 @@ import os
 import Mixer
 
 
-rate, dataList, maxDataLength = Mixer.readFiles(["hl2_01.wav", "hl2_02.wav"])
+rate, dataList, maxDataLength = Mixer.readFiles(["input/hl2_01.wav", "input/hl2_02.wav"])
 
 data = Mixer.mixInputs(dataList, maxDataLength);
 data = Mixer.addReverb(data, 5000, 0.2, 3)
