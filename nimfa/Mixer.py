@@ -69,6 +69,15 @@ def addReverb (inputData, delay, decay, reverberations):
 	
 	print "adding reverb completed"
 	return outputData
+      
+#arguments: 	data = numpy array 
+#returns:	data = numpy array
+def normalise (data):
+  
+	data /= numpy.max(numpy.abs(data), axis = 0)
+	
+	print "normalising completed"
+	return data
 
 
 
