@@ -18,7 +18,8 @@ data += numpy.random.normal(0, 2000, data.shape[0]) 	#add some noise
 if not os.path.exists("output"):
     os.makedirs("output")
     
-wav.write("output/mix", rate, data) 
+normalisedMixData = Mixer.normalise(data)
+wav.write("output/mix", rate, normalisedMixData) 
 
 
 
