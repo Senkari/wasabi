@@ -1,12 +1,26 @@
-import scipy.io.wavfile as wavi
+import scipy.io.wavfile as wav
 from scipy.fftpack import *
 from scipy.signal import *
 from pylab import *
 import numpy
 import nimfa
+import os
 
-fileIn = "classical_5db_1.wav"
-rate, data = wavi.read(fileIn)
+import Mixer
+
+
+rate, dataList, maxDataLength = Mixer.readFiles(["hl2_01.wav", "hl2_02.wav"])
+
+data = Mixer.mixInputs(dataList, maxDataLength);
+data = Mixer.addReverb(data, 5000, 0.2, 3)
+data += numpy.random.normal(0, 2000, data.shape[0]) 	#add some noise
+
+if not os.path.exists("output"):
+    os.makedirs("output")
+    
+wav.write("output/mix", rate, data) 
+
+
 
 ##http://dsp.stackexchange.com/questions/4697/time-frequency-analysis-of-non-sinusoidal-periodic-signals/4700#4700
 ##http://www.cs.tut.fi/sgn/arg/music/tuomasv/virtanen_taslp2007.pdf
@@ -47,6 +61,7 @@ angles = angle(periodograms)
 
 spectros = abs(numpy.asarray(periodograms))
 
+
 ##TODO: normalization
 #f, Pxx = welch(data, noverlap=128)
 #spectros = spectros / Pxx
@@ -62,17 +77,24 @@ spectros = abs(numpy.asarray(periodograms))
 ### Different nmf-approaches (http://nimfa.biolab.si)
 ##Adjust rank according to number of components to be extracted, try different algs and parameters
 
-nmf = nimfa.Nmf(spectros, max_iter=50, rank=4, update='divergence', objective='div')
+#nmf = nimfa.Nmf(spectros, max_iter=1000, rank=6, update='euclidean', objective='fro')
 
 #nmf = nimfa.Snmf(spectros, seed="random_vcol", rank=1*winsize, max_iter=5, version='l', eta=1., beta=1e-4, i_conv=10, w_min_change=0) #ValueError: operands could not be broadcast together with shapes (256,300) (256,301)
 
 #nmf = nimfa.Lfnmf(spectros, seed=None, W=np.random.rand(spectros.shape[0], 1*winsize), H=np.random.rand(1*winsize, spectros.shape[1]), rank=1*winsize, max_iter=20, alpha=0.01)
 
-#nmf = nimfa.Bd(spectros, seed="random_c", rank=1*winsize, max_iter=12, alpha=np.zeros((spectros.shape[0], 10)), beta=np.zeros((10, spectros.shape[1])), theta=.0, k=.0, sigma=1., skip=100, stride=1, n_w=np.zeros((10, 1)), n_h=np.zeros((10, 1)), n_sigma=False)
-
 #nmf = nimfa.Lsnmf(spectros, seed="random_vcol", rank=1*winsize, max_iter=12, sub_iter=10, inner_sub_iter=10, beta=0.1)
 
 ###
+
+
+
+
+rank = 2 #needed for printing progress (optional)
+
+nmf = nimfa.Bd(spectros, seed="random_c", rank=rank, max_iter=100, alpha=np.zeros((spectros.shape[0], 10)), beta=np.zeros((10, spectros.shape[1])), theta=.0, k=.0, sigma=1., skip=100, stride=1, n_w=np.zeros((rank, 1)), n_h=np.zeros((rank, 1)), n_sigma=False)
+
+
 
 nmf_fit = nmf()
 W = nmf_fit.basis()
@@ -86,7 +108,7 @@ source = numpy.asarray([])
 ##Extracted components to spectral form
 for i in range(W.shape[1]):
 	sources.append(W[:,i]*H[i])
-
+  
 ##Spectrograms back to sound
 for i in range(len(sources)):
 	sources[i] = numpy.asarray(sources[i])
@@ -111,8 +133,33 @@ for i in range(len(sources)):
 			source = numpy.concatenate((source, zeros(winsize/2)))
 			source += chunk
 			l += int(winsize/2)
-	name = "recovered"+str(i+1)+".wav"
-	wavi.write(name, rate, numpy.asarray(source).real)
+	
+	data = Mixer.normalise(numpy.asarray(source).real)
+	name = "output/recovered_"+str(i+1)+".wav"
+	wav.write(name, rate, data)
+	
+	print str(i + 1) + "/" + str(rank) + " recovered"
+	
 	source = numpy.asarray([])
 	l=0
-##For now, remember to normalize tracks before listening!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

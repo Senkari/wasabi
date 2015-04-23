@@ -3,6 +3,7 @@
 
 import scipy.io.wavfile as wav
 import numpy
+import os
 
 import Mixer
 
@@ -14,4 +15,7 @@ data = Mixer.addReverb(data, 5000, 0.2, 3)
 data += numpy.random.normal(0, 2000, data.shape[0]) 	#add some noise
 data = Mixer.normalise(data)
 
-wav.write("mix", rate, data) 
+if not os.path.exists("MixerDemooOutput"):
+    os.makedirs("MixerDemooOutput")
+    
+wav.write("MixerDemooOutput/mix", rate, data) 
