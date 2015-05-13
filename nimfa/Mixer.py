@@ -1,6 +1,7 @@
 import scipy.io.wavfile as wav
 import numpy
 import sys
+import math
 
 
 #arguments: 	filenames = a list of filenames
@@ -34,6 +35,7 @@ def readFiles (filenames):
 #arguments: 	inputDataList = a list of numpy arrays
 #		maxDataLength = longest length of numpy arrays
 #returns:	outputData = averaged data from numpy arrays in inputDataList
+'''
 def mixInputs (inputDataList, maxDataLength):
   
 	#randomise signal positions
@@ -52,7 +54,35 @@ def mixInputs (inputDataList, maxDataLength):
 		
 	print "mixing completed"
 	return outputData
+'''
 
+
+#arguments: 	inputData_1, inputData_2 = input numpy arrays
+#		maxDataLength = longest length of numpy arrays
+#returns:	outputData = numpy array (stereo signal)
+def mixInputs (inputData_1, inputData_2, maxDataLength, attenuationCoefficient):
+    
+        randPos = numpy.random.randint(0, maxDataLength - inputData_1.shape[0] + 1)
+        inputData_1 = numpy.lib.pad(inputData_1, (randPos, maxDataLength - inputData_1.shape[0] - randPos), 'constant', constant_values=(0.0, 0.0))
+
+        randPos = numpy.random.randint(0, maxDataLength - inputData_2.shape[0] + 1)
+        inputData_2 = numpy.lib.pad(inputData_2, (randPos, maxDataLength - inputData_2.shape[0] - randPos), 'constant', constant_values=(0.0, 0.0))
+
+        outputData_1 = inputData_1
+        outputData_1 = numpy.add(outputData_1, attenuationCoefficient * inputData_2)
+        
+        outputData_2 = inputData_2
+        outputData_2 = numpy.add(outputData_2, attenuationCoefficient * inputData_1)
+        
+        outputData = numpy.vstack(([outputData_1, outputData_2]))
+        #outputData = numpy.asarray(outputData, dtype=numpy.int16)
+        
+        dB = 20 * math.log10(attenuationCoefficient)
+        print "attenuation in decibels: " + str(dB)
+        
+        print "mixing completed"
+	return outputData
+    
 
 #arguments: 	inputData = numpy array 
 #		delay = delay in samples 
@@ -79,10 +109,16 @@ def addReverb (inputData, delay, decay, reverberations):
 #returns:	data = numpy array
 def normalise (data):
   
-	data /= numpy.max(numpy.abs(data), axis = 0)
+    if data.shape[0] == 2:
+        for i in range(data.shape[0]):
+            
+            data[i] /= numpy.max(numpy.abs(data[i]), axis = 0)
+            
+    else:
+        data /= numpy.max(numpy.abs(data), axis = 0)
 	
-	print "normalising completed"
-	return data
+    print "normalising completed"
+    return data
 
 
 
