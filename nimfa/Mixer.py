@@ -115,7 +115,7 @@ def addNormalNoise (data, decibelAmplification):
     
     standardDeviation = 10 ** (decibelAmplification / 20.0)
     
-    data += numpy.random.normal(0, standardDeviation * 32767, data.shape)
+    data += numpy.random.normal(0, standardDeviation, data.shape)
     
     print "normal noise decibel amplification: " + str(decibelAmplification)
     print "normal noise standard deviation: " + str(standardDeviation)

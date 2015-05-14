@@ -8,9 +8,11 @@ import os
 import Mixer
 
 
-rate, dataList, maxDataLength = Mixer.readFiles(["input/hl2_01.wav", "input/hl2_02.wav"])
+rate, dataList, maxDataLength = Mixer.readFiles(["input/br_overwatch05.wav", "input/monk_rant01.wav"])
 
 data = Mixer.mixInputs(dataList[0], dataList[1], maxDataLength, -1);
+data = Mixer.normalise(data)
+
 data = Mixer.addNormalNoise (data, -10)
 data = Mixer.normalise(data)
 
