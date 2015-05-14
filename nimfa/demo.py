@@ -2,31 +2,57 @@ import scipy.io.wavfile as wav
 from scipy.fftpack import *
 from scipy.signal import *
 from pylab import *
+from features import *
+import argparse
 import numpy
 import nimfa
 import os
 
 import Mixer
 
+parser = argparse.ArgumentParser(description="Audio separation using NMF.")
 
-rate, dataList, maxDataLength = Mixer.readFiles(["input/hl2_01.wav", "input/hl2_02.wav"])
+parser.add_argument("files", nargs='+', help="audio files to be combined into one mixed signal")
+parser.add_argument("-dl", "--delay", type=int, help="delay in samples, default 5000")
+parser.add_argument("-dc", "--decay", type=float, help="decay = measure of how much energy is lost on reverberation (0.0 - 1.0)(0.0 = full reverb, 1.0 = no reverb), default 0.2")
+parser.add_argument("-rb", "--reverberations", type=int, help="number of bounces")
+parser.add_argument("-t", "--type", help="NMF type. Types are: NMF, SNMF, LFNMF, LSNMF, BD. Default: NMF")
+parser.add_argument("-rn", "--rank", type=int, help="number of audio files that should be produced from input, default is 2")
+parser.add_argument("-i", "--iterations", type=int, help="maximum number of iterations in nmf, default 1000")
 
-data = Mixer.mixInputs(dataList, maxDataLength);
-data = Mixer.addReverb(data, 5000, 0.2, 3)
-data += numpy.random.normal(0, 2000, data.shape[0]) 	#add some noise
+args = parser.parse_args()
 
-if not os.path.exists("output"):
-    os.makedirs("output")
+rank = args.rank or 2
+max_iter = args.iterations or 1000
+delay = args.delay or 5000
+decay = args.decay or 0.2
+reverberations = args.reverberations or 3
+
+rate, data = wav.read(args.files[0])
+
+min = numpy.amin(data)
+if min < 0:
+    min *= -3
+
+spectros = numpy.sum([data, min])
+print spectros.shape
+
+#rate, dataList, maxDataLength = Mixer.readFiles(args.files)
+
+#data = Mixer.mixInputs(dataList, maxDataLength);
+#data = Mixer.addReverb(data, 5000, 0.2, 3)
+#data += numpy.random.normal(0, 2000, data.shape[0]) 	#add some noise
+
+#if not os.path.exists("output"):
+#    os.makedirs("output")
     
-normalisedMixData = Mixer.normalise(data)
-wav.write("output/mix", rate, normalisedMixData) 
-
-
+#normalisedMixData = Mixer.normalise(data)
+#wav.write("output/mix", rate, normalisedMixData)
 
 ##http://dsp.stackexchange.com/questions/4697/time-frequency-analysis-of-non-sinusoidal-periodic-signals/4700#4700
 ##http://www.cs.tut.fi/sgn/arg/music/tuomasv/virtanen_taslp2007.pdf
 
-
+"""
 ##Default window function for specgram is Hanning;
 ##w(n) = 0.5*(1-cos(2*pi*n/(N-1)))
 
@@ -61,9 +87,9 @@ while(loop==1):
 angles = angle(periodograms)
 
 spectros = abs(numpy.asarray(periodograms))
+"""
 
-
-##TODO: normalization
+##TODO: normalization 
 #f, Pxx = welch(data, noverlap=128)
 #spectros = spectros / Pxx
 
@@ -78,29 +104,38 @@ spectros = abs(numpy.asarray(periodograms))
 ### Different nmf-approaches (http://nimfa.biolab.si)
 ##Adjust rank according to number of components to be extracted, try different algs and parameters
 
-#nmf = nimfa.Nmf(spectros, max_iter=1000, rank=6, update='euclidean', objective='fro')
-
-#nmf = nimfa.Snmf(spectros, seed="random_vcol", rank=1*winsize, max_iter=5, version='l', eta=1., beta=1e-4, i_conv=10, w_min_change=0) #ValueError: operands could not be broadcast together with shapes (256,300) (256,301)
-
-#nmf = nimfa.Lfnmf(spectros, seed=None, W=np.random.rand(spectros.shape[0], 1*winsize), H=np.random.rand(1*winsize, spectros.shape[1]), rank=1*winsize, max_iter=20, alpha=0.01)
-
-#nmf = nimfa.Lsnmf(spectros, seed="random_vcol", rank=1*winsize, max_iter=12, sub_iter=10, inner_sub_iter=10, beta=0.1)
-
-###
-
-
-
-
-rank = 2 #needed for printing progress (optional)
-
-nmf = nimfa.Bd(spectros, seed="random_c", rank=rank, max_iter=100, alpha=np.zeros((spectros.shape[0], 10)), beta=np.zeros((10, spectros.shape[1])), theta=.0, k=.0, sigma=1., skip=100, stride=1, n_w=np.zeros((rank, 1)), n_h=np.zeros((rank, 1)), n_sigma=False)
-
+if (args.type == "NMF" or args.type == None):
+    nmf = nimfa.Nmf(spectros, max_iter=max_iter, rank=rank, update='euclidean', objective='fro')
+elif (args.type == "SNMF"):
+    nmf = nimfa.Snmf(spectros, seed="random_vcol", rank=rank, max_iter=5, version='l', eta=1., beta=1e-4, i_conv=10, w_min_change=0) #ValueError: operands could not be broadcast together with shapes (256,300) (256,301)
+elif (args.type=="LFNMF"):
+    nmf = nimfa.Lfnmf(spectros, seed=None, W=np.random.rand(spectros.shape[0], 1*winsize), H=np.random.rand(1*winsize, spectros.shape[1]), rank=rank, max_iter=max_iter, alpha=0.01)
+elif (args.type=="LSNMF"):
+    nmf = nimfa.Lsnmf(spectros, seed="random_vcol", rank=rank, max_iter=max_iter, sub_iter=10, inner_sub_iter=10, beta=0.1)
+elif (args.type=="BD"):
+    nmf = nimfa.Bd(spectros, seed="random_c", rank=rank, max_iter=max_iter, alpha=np.zeros((spectros.shape[0], 10)), beta=np.zeros((10, spectros.shape[1])), theta=.0, k=.0, sigma=1., skip=100, stride=1, n_w=np.zeros((rank, 1)), n_h=np.zeros((rank, 1)), n_sigma=False)
+else:
+    print "Error: invalid --type/-t, valid types are NMF, SNMF, LFNMF, LSNMF and BD."
+    sys.exit()
 
 
 nmf_fit = nmf()
 W = nmf_fit.basis()
 H = nmf_fit.coef()
 
+sources = []
+
+for i in range(W.shape[1]):
+    sources.append(W[:,i]*H[i])
+
+for i in range(len(sources)):
+    data = numpy.sum([sources[i], -min])
+    print data.shape
+    #ndata = Mixer.normalise(data)
+    name = "output/recovered_"+str(i+1)
+    wav.write(name, rate, data)
+
+"""
 l = 0
 sources = []
 recovered = []
@@ -144,7 +179,7 @@ for i in range(len(sources)):
 	source = numpy.asarray([])
 	l=0
 
-
+"""
 
 
 
