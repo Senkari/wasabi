@@ -59,8 +59,11 @@ def mixInputs (inputDataList, maxDataLength):
 
 #arguments: 	inputData_1, inputData_2 = input numpy arrays
 #		maxDataLength = longest length of numpy arrays
+#               decibelAmplification = amplification of the signal added to the other channel in decibels
 #returns:	outputData = numpy array (stereo signal)
-def mixInputs (inputData_1, inputData_2, maxDataLength, attenuationCoefficient):
+def mixInputs (inputData_1, inputData_2, maxDataLength, decibelAmplification):
+    
+        additionCoefficient = 10 ** (decibelAmplification / 20.0)
     
         randPos = numpy.random.randint(0, maxDataLength - inputData_1.shape[0] + 1)
         inputData_1 = numpy.lib.pad(inputData_1, (randPos, maxDataLength - inputData_1.shape[0] - randPos), 'constant', constant_values=(0.0, 0.0))
@@ -69,16 +72,15 @@ def mixInputs (inputData_1, inputData_2, maxDataLength, attenuationCoefficient):
         inputData_2 = numpy.lib.pad(inputData_2, (randPos, maxDataLength - inputData_2.shape[0] - randPos), 'constant', constant_values=(0.0, 0.0))
 
         outputData_1 = inputData_1
-        outputData_1 = numpy.add(outputData_1, attenuationCoefficient * inputData_2)
+        outputData_1 = numpy.add(outputData_1, additionCoefficient * inputData_2)
         
         outputData_2 = inputData_2
-        outputData_2 = numpy.add(outputData_2, attenuationCoefficient * inputData_1)
+        outputData_2 = numpy.add(outputData_2, additionCoefficient * inputData_1)
         
         outputData = numpy.vstack(([outputData_1, outputData_2]))
-        #outputData = numpy.asarray(outputData, dtype=numpy.int16)
         
-        dB = 20 * math.log10(attenuationCoefficient)
-        print "attenuation in decibels: " + str(dB)
+        print "signal mixing decibel amplification: " + str(decibelAmplification)
+        print "signal mixing addition coefficient: " + str(additionCoefficient)
         
         print "mixing completed"
 	return outputData
@@ -104,6 +106,22 @@ def addReverb (inputData, delay, decay, reverberations):
 	
 	print "adding reverb completed"
 	return outputData
+ 
+
+#arguments: 	data = numpy array 
+#               decibelAmplification = amplification in decibels
+#returns:	data = numpy array
+def addNormalNoise (data, decibelAmplification):
+    
+    standardDeviation = 10 ** (decibelAmplification / 20.0)
+    
+    data += numpy.random.normal(0, standardDeviation * 32767, data.shape)
+    
+    print "normal noise decibel amplification: " + str(decibelAmplification)
+    print "normal noise standard deviation: " + str(standardDeviation)
+    
+    return data
+
       
 #arguments: 	data = numpy array 
 #returns:	data = numpy array
