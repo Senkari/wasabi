@@ -81,8 +81,7 @@ for i in range(15):
 
     for j in range(-5, 6):
 
-        data = Mixer.mixInputs(dataList[0], dataList[1], maxDataLength, j)
-        data = Mixer.normalise(data)
+        data, dataList[0], dataList[1] = Mixer.mixInputs(dataList[0], dataList[1], maxDataLength, j)
 
         for k in range(-10, 7):
 
@@ -99,9 +98,31 @@ for i in range(15):
                 comps = 4
 
             wav.write("input/mix.wav", rate, numpy.int16(data.T * 32767))
+
             model = am.MultiChanNMFConv("input/mix.wav", nbComps=comps, nbNMFComps=32, spatial_rank=1, verbose=1, iter_num=50)
             model.makeItConvolutive()
             model.estim_param_a_post_model()
             model.separate_spat_comps(dir_results="output/"+dirName+"/"+comboString)
+
+            estimatedData_1 = Mixer.stereoToMono()
+            estimatedData_2 = Mixer.stereoToMono()
+
+            #comparison of data here
+            #dataList[0], dataList[1] = zero-padded original data
+
             f += 1
 print f
+
+
+
+
+
+
+
+
+
+
+
+
+
+
