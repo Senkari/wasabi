@@ -1,7 +1,9 @@
 import pyfasst.audioModel as am
-filename = 'mix.wav'
+import Mixer
 
-model = am.MultiChanNMFConv(audio=filename, nbComps=2, nbNMFComps=32, spatial_rank=1, verbose=1, iter_num=200)
+filename = 'br_overwatch05_noise.wav'
+
+model = am.MultiChanNMFConv(audio=filename, nbComps=4, nbNMFComps=32, spatial_rank=1, verbose=1, iter_num=75)
 
 model.makeItConvolutive()
 
