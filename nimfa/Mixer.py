@@ -26,7 +26,8 @@ def readFiles (filenames):
 				sys.exit
 			if data.shape[0] > maxDataLength:
 				maxDataLength = data.shape[0]
-					
+		
+		data = normalise(data)
 		outputDataList.append(data)
 	
 	return outputRate, outputDataList, maxDataLength
@@ -61,6 +62,7 @@ def mixInputs (inputDataList, maxDataLength):
 #		maxDataLength = longest length of numpy arrays
 #               decibelAmplification = amplification of the signal added to the other channel in decibels
 #returns:	outputData = numpy array (stereo signal)
+#               inputData_1, inputData_2 = zero-padded numpy arrays
 def mixInputs (inputData_1, inputData_2, maxDataLength, decibelAmplification):
     
         additionCoefficient = 10 ** (decibelAmplification / 20.0)
@@ -82,8 +84,10 @@ def mixInputs (inputData_1, inputData_2, maxDataLength, decibelAmplification):
         print "signal mixing decibel amplification: " + str(decibelAmplification)
         print "signal mixing addition coefficient: " + str(additionCoefficient)
         
-        print "mixing completed"
-	return outputData
+        outputData = normalise(outputData)
+        inputData_1 = normalise(inputData_1)
+        inputData_2 = normalise(inputData_2)
+	return outputData, inputData_1, inputData_2
     
 
 #arguments: 	inputData = numpy array 
@@ -105,6 +109,8 @@ def addReverb (inputData, delay, decay, reverberations):
 				outputData[i + delay * j] += inputData[i] * ((1.0 - decay) ** j) 
 	
 	print "adding reverb completed"
+	
+	data = normalise(data)
 	return outputData
  
 
@@ -120,6 +126,7 @@ def addNormalNoise (data, decibelAmplification):
     print "normal noise decibel amplification: " + str(decibelAmplification)
     print "normal noise standard deviation: " + str(standardDeviation)
     
+    data = normalise(data)
     return data
 
       
@@ -127,16 +134,25 @@ def addNormalNoise (data, decibelAmplification):
 #returns:	data = numpy array
 def normalise (data):
   
+    data = data.astype(float)
+  
     if data.shape[0] == 2:
         for i in range(data.shape[0]):
-            
             data[i] /= numpy.max(numpy.abs(data[i]), axis = 0)
-            
     else:
         data /= numpy.max(numpy.abs(data), axis = 0)
 	
-    print "normalising completed"
     return data
+
+
+def stereoToMono(path):
+    
+    rate, data = wav.read(path)
+    
+    data = normalise(data)
+    outputData = numpy.add(data[:, 0], data[:, 1]) * 0.5
+    
+    return outputData.T
 
 
 
